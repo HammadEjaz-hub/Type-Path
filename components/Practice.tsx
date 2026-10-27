@@ -345,7 +345,7 @@ export default function Practice({
         📱 Typing lessons work best with a physical keyboard — you can look around, but grab a keyboard to really practice.
       </p>
 
-      <div className="glass-strong relative rounded-3xl p-6 sm:p-8">
+      <div className="glass-static relative rounded-3xl p-6 sm:p-8">
         <TypingCard
           target={target}
           states={typing.states}

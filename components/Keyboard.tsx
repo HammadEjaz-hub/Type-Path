@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { memo, useEffect, useState, type CSSProperties } from "react";
 import { FINGERS, FINGER_ORDER, KEYBOARD_ROWS, fingerOf, type FingerId } from "@/lib/fingers";
 
 interface Props {
@@ -337,10 +337,84 @@ function usePhysicalKeys(): ReadonlySet<string> {
 }
 
 /* ------------------------------------------------------------------ */
+/* One keycap — memoized (performance pass). A keystroke changes the   */
+/* state of only ~5 caps (old/new next, pressed, wrong, shift-glow),   */
+/* so the other ~85 skip rendering entirely. All props are primitives  */
+/* or module-stable references (LAPTOP_BOARD specs, finger palettes).  */
+/* Transitions are scoped to transform + border-color: the pressed     */
+/* shadow swap is instant instead of animating box-shadow every press. */
+/* ------------------------------------------------------------------ */
+
+interface KeyCapProps {
+  k: FullKey;
+  pal: CapPalette;
+  isNext: boolean;
+  isShiftNext: boolean;
+  isPressed: boolean;
+  isWrong: boolean;
+}
+
+const KeyCap = memo(function KeyCap({ k, pal, isNext, isShiftNext, isPressed, isWrong }: KeyCapProps) {
+  const capStyle: CSSProperties = {
+    gridColumn: `${k.col} / span ${k.span}`,
+    gridRow: `${k.grow} / span ${k.gspan}`,
+    background: isWrong
+      ? "linear-gradient(180deg,#fff1f2 0%,#fecdd3 60%,#fda4af 100%)"
+      : `linear-gradient(180deg, ${pal.light} 0%, ${pal.fill} 58%, ${pal.fill} 100%)`,
+    borderColor: isWrong
+      ? "#f43f5e"
+      : isNext || isShiftNext
+        ? "#059669"
+        : "rgba(16,24,40,.07)",
+    boxShadow: isPressed
+      ? `inset 0 -1px 0 ${isWrong ? "#fb7185" : pal.edge}, ${SHADOW_TOP}, 0 1px 2px rgba(16,24,40,.14)`
+      : `inset 0 -3px 0 ${isWrong ? "#fb7185" : pal.edge}, ${SHADOW_TOP}, 0 3px 7px -2px rgba(16,24,40,.22)`,
+    transform: isPressed ? "translateY(2px)" : undefined,
+    ["--edge" as string]: pal.edge,
+  };
+  return (
+    <div
+      className={`relative flex items-center justify-center border font-semibold transition-[transform,border-color] duration-100 ${
+        k.fnRow ? "rounded-lg" : "rounded-xl"
+      } ${
+        k.id === "space"
+          ? "text-[clamp(7px,0.85vw,11px)] uppercase tracking-[0.22em] text-gray-500"
+          : k.texty
+            ? "text-[clamp(7px,0.85vw,11px)] text-gray-600"
+            : "text-[clamp(9px,1.15vw,15px)] text-gray-700"
+      } ${isNext ? "keycap-next key-next-pulse z-10" : ""} ${
+        isShiftNext ? "key-next-shift z-10" : ""
+      } ${isWrong ? "keycap-wrong z-10" : ""}`}
+      style={capStyle}
+    >
+      {k.sub ? (
+        <span className="flex flex-col items-center gap-0 leading-none">
+          <span className="text-[0.64em] font-semibold opacity-60">{k.sub}</span>
+          <span className="mt-[0.14em]">{k.label}</span>
+        </span>
+      ) : (
+        k.label
+      )}
+      {k.corner && (
+        <span className="absolute bottom-[2px] right-[4px] text-[clamp(5px,0.55vw,7.5px)] font-medium leading-none text-gray-400">
+          {k.corner}
+        </span>
+      )}
+      {k.bump && (
+        <span
+          className="absolute bottom-[5px] left-1/2 h-[3px] w-3.5 -translate-x-1/2 rounded-full"
+          style={{ backgroundColor: pal.deep, opacity: 0.45 }}
+        />
+      )}
+    </div>
+  );
+});
+
+/* ------------------------------------------------------------------ */
 /* Component                                                           */
 /* ------------------------------------------------------------------ */
 
-export default function Keyboard({ nextChar, pressedKey, wrongKey = null, compact = false }: Props) {
+function Keyboard({ nextChar, pressedKey, wrongKey = null, compact = false }: Props) {
   const physDown = usePhysicalKeys();
 
   const shiftSide = nextChar ? shiftSideFor(nextChar) : null;
@@ -368,59 +442,16 @@ export default function Keyboard({ nextChar, pressedKey, wrongKey = null, compac
             const isPressed =
               charMatches(pressedKey, key.char) || (key.phys !== undefined && physDown.has(key.phys));
             const isWrong = charMatches(wrongKey, key.char);
-            const capStyle: CSSProperties = {
-              gridColumn: `${key.col} / span ${key.span}`,
-              gridRow: `${key.grow} / span ${key.gspan}`,
-              background: isWrong
-                ? "linear-gradient(180deg,#fff1f2 0%,#fecdd3 60%,#fda4af 100%)"
-                : `linear-gradient(180deg, ${pal.light} 0%, ${pal.fill} 58%, ${pal.fill} 100%)`,
-              borderColor: isWrong
-                ? "#f43f5e"
-                : isNext || isShiftNext
-                  ? "#059669"
-                  : "rgba(16,24,40,.07)",
-              boxShadow: isPressed
-                ? `inset 0 -1px 0 ${isWrong ? "#fb7185" : pal.edge}, ${SHADOW_TOP}, 0 1px 2px rgba(16,24,40,.14)`
-                : `inset 0 -3px 0 ${isWrong ? "#fb7185" : pal.edge}, ${SHADOW_TOP}, 0 3px 7px -2px rgba(16,24,40,.22)`,
-              transform: isPressed ? "translateY(2px)" : undefined,
-              ["--edge" as string]: pal.edge,
-            };
             return (
-              <div
+              <KeyCap
                 key={key.id}
-                className={`relative flex items-center justify-center border font-semibold transition-all duration-100 ${
-                  key.fnRow ? "rounded-lg" : "rounded-xl"
-                } ${
-                  key.id === "space"
-                    ? "text-[clamp(7px,0.85vw,11px)] uppercase tracking-[0.22em] text-gray-500"
-                    : key.texty
-                      ? "text-[clamp(7px,0.85vw,11px)] text-gray-600"
-                      : "text-[clamp(9px,1.15vw,15px)] text-gray-700"
-                } ${isNext ? "keycap-next key-next-pulse z-10" : ""} ${
-                  isShiftNext ? "key-next-shift z-10" : ""
-                } ${isWrong ? "keycap-wrong z-10" : ""}`}
-                style={capStyle}
-              >
-                {key.sub ? (
-                  <span className="flex flex-col items-center gap-0 leading-none">
-                    <span className="text-[0.64em] font-semibold opacity-60">{key.sub}</span>
-                    <span className="mt-[0.14em]">{key.label}</span>
-                  </span>
-                ) : (
-                  key.label
-                )}
-                {key.corner && (
-                  <span className="absolute bottom-[2px] right-[4px] text-[clamp(5px,0.55vw,7.5px)] font-medium leading-none text-gray-400">
-                    {key.corner}
-                  </span>
-                )}
-                {key.bump && (
-                  <span
-                    className="absolute bottom-[5px] left-1/2 h-[3px] w-3.5 -translate-x-1/2 rounded-full"
-                    style={{ backgroundColor: pal.deep, opacity: 0.45 }}
-                  />
-                )}
-              </div>
+                k={key}
+                pal={pal}
+                isNext={isNext}
+                isShiftNext={isShiftNext}
+                isPressed={isPressed}
+                isWrong={isWrong}
+              />
             );
           })}
         </div>
@@ -452,7 +483,13 @@ export default function Keyboard({ nextChar, pressedKey, wrongKey = null, compac
   );
 }
 
-export function KeyboardLegend() {
+/* Memoized: the 200ms stats tick in the parent re-renders Practice /
+   TestView, but with unchanged props (nextChar / pressedKey / wrongKey
+   are primitives) the whole board bails out. Internal physical-key
+   state still re-renders from inside when special keys are pressed. */
+export default memo(Keyboard);
+
+export const KeyboardLegend = memo(function KeyboardLegend() {
   return (
     <div className="flex flex-wrap items-center justify-center gap-1.5">
       {FINGER_ORDER.map((id) => (
@@ -472,7 +509,7 @@ export function KeyboardLegend() {
       ))}
     </div>
   );
-}
+});
 
 /** Small keyboard used for weak-keys display: keys with errors get a red depth. */
 export function MiniKeyboard({ errors, highlight }: { errors: Record<string, number>; highlight?: string[] }) {

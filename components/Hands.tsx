@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { FINGERS, type FingerId } from "@/lib/fingers";
 
 const LEFT: FingerId[] = ["l-pinky", "l-ring", "l-middle", "l-index"];
@@ -71,7 +72,7 @@ function Hand({
   );
 }
 
-export default function Hands({ active }: { active: FingerId | null }) {
+function Hands({ active }: { active: FingerId | null }) {
   return (
     <div className="flex items-start justify-center gap-4 sm:gap-8" aria-hidden="true">
       <Hand side="left" active={active} />
@@ -79,3 +80,8 @@ export default function Hands({ active }: { active: FingerId | null }) {
     </div>
   );
 }
+
+/* Memoized (performance pass): `active` is a primitive that only
+   changes when the next character changes, so the 200ms stats tick
+   and unrelated parent re-renders skip the hands entirely. */
+export default memo(Hands);

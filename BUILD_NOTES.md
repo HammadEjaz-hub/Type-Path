@@ -291,6 +291,58 @@ rows for the stacked ↑/↓. 1fr grid + clamp() legends — fills its
 container, never overflows.
 
 
+## Performance pass (Oct 27, 2026) — smoothness fix
+
+User deployed to Vercel (type-path.vercel.app) and reported the site
+felt laggy on his laptop. Root causes were our own design choices:
+an ANIMATED mesh behind heavy backdrop-blur surfaces, and full-tree
+re-renders on every keystroke / 200ms stats tick. Fixes, in impact
+order — the look (colours, glass impression, layout) is unchanged:
+
+1. **Static mesh.** The 24s `mesh-drift` animation and its
+   `will-change: transform` are gone. Same 7 blobs, same alphas,
+   same 70px blur — but a static background composites once instead
+   of forcing every glass surface to repaint every frame. This is
+   the one deliberate visual tradeoff: the background no longer
+   moves.
+2. **Glass tiers** (globals.css). "Live glass" keeps real
+   backdrop-filter (`.glass-strong` 22px, `.glass-bar` 20px,
+   `.glass-pill` 14px) — small/overlay surfaces only: header, pills,
+   modals/report, game HUD, segmented control. "Static glass" for
+   the large surfaces: `.glass` raised to a 0.88→0.78 white gradient
+   with blur cut 18px→10px; `.glass-tint` (module panels),
+   `.glass-deck` (keyboard deck) and the new `.glass-static` (typing
+   card in Practice + TestView) drop backdrop-filter entirely and
+   fake the frost with the gradient + bright border + emerald tint
+   stop over the now-static mesh.
+3. **Keyboard render.** Keycaps extracted into a memoized `KeyCap`
+   component — a keystroke re-renders only the ~5 caps whose state
+   changed (old/new next, pressed, wrong, shift-glow) instead of
+   all ~90. `Keyboard` and `KeyboardLegend` are `React.memo` too,
+   so the 200ms tick (unchanged primitive props) bails out. Cap
+   transitions are scoped to `transform, border-color`; the
+   pressed-state shadow swap is instant.
+4. **Typing views.** `TypingCard` is split into a memoized char
+   text (per-span memoized `CharSpan` — a keystroke updates O(1)
+   spans) and a memoized KPI row fed by formatted primitives, so
+   the ticking clock re-renders only the tiny stat pills, and only
+   when a displayed value changes. TestView's live analytics moved
+   into a memoized `LiveAnalytics` component fed by primitives;
+   `Hands` is memoized (its `active` prop is a primitive).
+5. **Game.** Verified: moving layers (bubbles, clouds, motes,
+   particles) use gradients only — no backdrop-filter anywhere in
+   the stage. HUD pills keep their small blur; the only
+   backdrop-blur in the game remains the static game-over overlay.
+6. **Sweep.** Remaining continuous animations are all composited
+   (transform/opacity: shimmer sweeps, caret blink) or scoped to a
+   single small element (next-key halo, one pulse-ring button).
+   No `will-change`, no large-area box-shadow/width animations.
+
+Build clean; exported CSS 47,265 bytes. Interactions remain
+build-verified + code-reviewed; the live before/after feel check
+happens on the deployed site after the user re-uploads.
+
+
 ## Phase 2 ideas (not in this build)
 
 - More games (word race, sentence sprint, balloon pop)

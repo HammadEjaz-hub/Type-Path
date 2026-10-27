@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { PARAGRAPHS } from "@/lib/curriculum";
 import { fingerOf } from "@/lib/fingers";
 import { sounds } from "@/lib/sound";
@@ -214,7 +214,7 @@ export default function TestView({ soundOn, onResult, addPracticeTime, addKeyErr
         />
       ) : (
         <>
-          <div className="glass-strong rounded-3xl p-6 sm:p-8">
+          <div className="glass-static rounded-3xl p-6 sm:p-8">
             <TypingCard
               target={target}
               states={typing.states}
@@ -225,45 +225,18 @@ export default function TestView({ soundOn, onResult, addPracticeTime, addKeyErr
             />
           </div>
 
-          {/* live analytics row */}
+          {/* live analytics row — isolated + memoized (performance
+              pass): it consumes the ticking stats, so it lives in its
+              own component fed by primitives; the typing card and
+              keyboard above/below no longer re-render with the clock */}
           {showAnalytics && (
-            <div className="mt-4 grid gap-4 lg:grid-cols-3">
-              <div className="glass rounded-3xl p-5 lg:col-span-2">
-                <div className="flex items-baseline justify-between">
-                  <h3 className="text-[12px] font-semibold uppercase tracking-wider text-gray-400">Live pace</h3>
-                  <span className="text-[12.5px] font-medium text-gray-400">
-                    now <span className="font-bold text-brand-700 tnum">{typing.stats.wpm} WPM</span>
-                  </span>
-                </div>
-                {pace.length >= 2 ? (
-                  <PaceChart data={pace} height={86} />
-                ) : (
-                  <div className="flex h-[86px] items-center justify-center text-[13px] text-gray-400">
-                    {typing.started ? "Collecting your pace…" : "Start typing — your speed curve appears here."}
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
-                <div className="glass flex items-center gap-3.5 rounded-3xl p-4">
-                  <AccuracyRing pct={typing.stats.accuracy} size={54} />
-                  <div>
-                    <div className="font-display text-[19px] font-bold leading-none text-gray-900 tnum">
-                      {typing.stats.accuracy.toFixed(0)}%
-                    </div>
-                    <div className="mt-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">Accuracy</div>
-                  </div>
-                </div>
-                <div className="glass flex items-center gap-3.5 rounded-3xl p-4">
-                  <div className="font-display text-[26px] leading-none">🎯</div>
-                  <div>
-                    <div className="font-display text-[19px] font-bold leading-none text-gray-900 tnum">
-                      {typing.stats.consistency}%
-                    </div>
-                    <div className="mt-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">Consistency</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <LiveAnalytics
+              wpm={typing.stats.wpm}
+              accuracy={typing.stats.accuracy}
+              consistency={typing.stats.consistency}
+              pace={pace}
+              started={typing.started}
+            />
           )}
 
           <div className="mt-5 hidden md:block">
@@ -284,6 +257,62 @@ export default function TestView({ soundOn, onResult, addPracticeTime, addKeyErr
     </div>
   );
 }
+
+/* ---------------- live analytics (isolated stats consumer) ---------------- */
+
+const LiveAnalytics = memo(function LiveAnalytics({
+  wpm,
+  accuracy,
+  consistency,
+  pace,
+  started,
+}: {
+  wpm: number;
+  accuracy: number;
+  consistency: number;
+  pace: number[];
+  started: boolean;
+}) {
+  return (
+    <div className="mt-4 grid gap-4 lg:grid-cols-3">
+      <div className="glass rounded-3xl p-5 lg:col-span-2">
+        <div className="flex items-baseline justify-between">
+          <h3 className="text-[12px] font-semibold uppercase tracking-wider text-gray-400">Live pace</h3>
+          <span className="text-[12.5px] font-medium text-gray-400">
+            now <span className="font-bold text-brand-700 tnum">{wpm} WPM</span>
+          </span>
+        </div>
+        {pace.length >= 2 ? (
+          <PaceChart data={pace} height={86} />
+        ) : (
+          <div className="flex h-[86px] items-center justify-center text-[13px] text-gray-400">
+            {started ? "Collecting your pace…" : "Start typing — your speed curve appears here."}
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
+        <div className="glass flex items-center gap-3.5 rounded-3xl p-4">
+          <AccuracyRing pct={accuracy} size={54} />
+          <div>
+            <div className="font-display text-[19px] font-bold leading-none text-gray-900 tnum">
+              {accuracy.toFixed(0)}%
+            </div>
+            <div className="mt-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">Accuracy</div>
+          </div>
+        </div>
+        <div className="glass flex items-center gap-3.5 rounded-3xl p-4">
+          <div className="font-display text-[26px] leading-none">🎯</div>
+          <div>
+            <div className="font-display text-[19px] font-bold leading-none text-gray-900 tnum">
+              {consistency}%
+            </div>
+            <div className="mt-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">Consistency</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 /* ---------------- pace area chart ---------------- */
 

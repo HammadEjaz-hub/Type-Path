@@ -61,7 +61,11 @@ body {
    into one ambient wash, with a focal emerald glow behind the hero.
    Painted behind everything (negative z-index in the root context);
    no ancestor between this layer and the content paints an opaque
-   background (audited: body bg is on the canvas, root/main are bare). */
+   background (audited: body bg is on the canvas, root/main are bare).
+   PERFORMANCE (Oct 27): the mesh is STATIC — the old 24s drift
+   animation was removed because an animating background forced every
+   backdrop-filtered surface on the page to repaint every frame. A
+   static mesh composites once; the colours/alphas/blur are unchanged. */
 .mesh-bg {
   position: fixed;
   inset: -10%;
@@ -83,31 +87,32 @@ body {
     /* teal — bottom-right */
     radial-gradient(52vw 40vw at 92% 96%, rgba(45, 212, 191, 0.18), transparent 68%);
   filter: blur(70px);
-  animation: mesh-drift 24s ease-in-out infinite alternate;
-  will-change: transform;
-}
-
-@keyframes mesh-drift {
-  from {
-    transform: translate3d(-1.2%, -0.8%, 0) scale(1);
-  }
-  to {
-    transform: translate3d(1.2%, 1%, 0) scale(1.045);
-  }
 }
 
 @layer components {
-  /* Frosted glass surface — cards, panels, tiles. A white gradient
-     (brighter top-left → deeper bottom-right) over blur+saturate so
-     the mesh colour behind visibly frosts through the surface. */
+  /* ================================================================
+     GLASS TIERS (performance pass, Oct 27)
+     - "Live glass" (.glass-strong, .glass-bar, .glass-pill): real
+       backdrop blur 14–22px — only small or overlay surfaces (sticky
+       header, pills/chips, modals/report, HUD, segmented control)
+       where the frost genuinely reads and repaint area is tiny.
+     - "Static glass" (.glass, .glass-tint, .glass-static,
+       .glass-deck): the LARGE surfaces. Higher white alpha and blur
+       cut to 10px (.glass) or removed entirely — the frost is faked
+       with the gradient + bright border + emerald tint stop. Over a
+       static mesh the eye can't tell the difference, but the GPU
+       stops re-blurring full-width panels on every interaction.
+     ================================================================ */
+
+  /* Static glass — general cards, panels, tiles. */
   .glass {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.72),
-      rgba(255, 255, 255, 0.42)
+      rgba(255, 255, 255, 0.88),
+      rgba(255, 255, 255, 0.78)
     );
-    -webkit-backdrop-filter: blur(18px) saturate(1.6);
-    backdrop-filter: blur(18px) saturate(1.6);
+    -webkit-backdrop-filter: blur(10px) saturate(1.5);
+    backdrop-filter: blur(10px) saturate(1.5);
     border: 1px solid rgba(255, 255, 255, 0.75);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.9),
@@ -115,22 +120,35 @@ body {
       0 24px 48px -24px rgba(6, 78, 59, 0.25);
   }
 
-  /* Emerald-tinted glass — for panels sitting over the strongest
-     mesh areas (module panels, heroes) so the frosting picks up
-     a whisper of the emerald behind it. */
+  /* Emerald-tinted static glass — the biggest panels (module panels)
+     get no backdrop filter at all; the emerald stop in the gradient
+     fakes the mesh colour frosting through. */
   .glass-tint {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.68),
-      rgba(236, 253, 245, 0.48)
+      rgba(255, 255, 255, 0.84),
+      rgba(236, 253, 245, 0.62)
     );
-    -webkit-backdrop-filter: blur(18px) saturate(1.6);
-    backdrop-filter: blur(18px) saturate(1.6);
     border: 1px solid rgba(255, 255, 255, 0.75);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.9),
       inset 0 -1px 0 rgba(255, 255, 255, 0.25),
       0 24px 48px -24px rgba(6, 78, 59, 0.25);
+  }
+
+  /* Static glass for the typing card — the biggest hot-path surface.
+     No backdrop filter; gradient + border + tint carry the look. */
+  .glass-static {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.8)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.3),
+      0 28px 56px -26px rgba(6, 78, 59, 0.28);
   }
 
   /* Stronger glass — modals, typing card, hero panels */
@@ -149,15 +167,15 @@ body {
       0 32px 64px -28px rgba(6, 78, 59, 0.3);
   }
 
-  /* Deep frosted slab — the keyboard deck */
+  /* Deep frosted slab — the keyboard deck. Static tier (no backdrop
+     filter): the deck is the widest hot-path surface, so its frost is
+     the gradient + mint stop + bright border, same as .glass-tint. */
   .glass-deck {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.66),
-      rgba(236, 253, 245, 0.4)
+      rgba(255, 255, 255, 0.88),
+      rgba(236, 253, 245, 0.72)
     );
-    -webkit-backdrop-filter: blur(20px) saturate(1.6);
-    backdrop-filter: blur(20px) saturate(1.6);
     border: 1px solid rgba(255, 255, 255, 0.75);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.9),
@@ -606,7 +624,6 @@ body {
   .typing-caret,
   .cloud-drift,
   .cloud-drift-rev,
-  .mesh-bg,
   .bubble-sway,
   .mote {
     animation: none;
