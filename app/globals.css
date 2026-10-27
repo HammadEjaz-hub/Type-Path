@@ -1,0 +1,642 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply text-gray-800 antialiased;
+  background-color: #f6faf7;
+  font-feature-settings: "ss01", "cv11";
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visible, consistent keyboard focus */
+:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: #a7f3d0;
+  color: #064e3b;
+}
+
+/* Thin styled scrollbar */
+.nice-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.nice-scroll::-webkit-scrollbar-track {
+  background: #ecfdf5;
+  border-radius: 8px;
+}
+.nice-scroll::-webkit-scrollbar-thumb {
+  background: #6ee7b7;
+  border-radius: 8px;
+}
+.nice-scroll::-webkit-scrollbar-thumb:hover {
+  background: #34d399;
+}
+
+/* ============================================================
+   Design v2 — ambient mesh background + glass design system
+   Design v2.1 — mesh and glass made UNMISTAKABLY visible: the
+   v2 mesh (alphas 0.05–0.10) and flat-white glass were invisible
+   on a near-white base, so v2.1 raises the blobs to real colour
+   presence and gives the glass a true frosted gradient recipe.
+   ============================================================ */
+
+/* Fixed ambient mesh: large, strongly-tinted radial blobs blurred
+   into one ambient wash, with a focal emerald glow behind the hero.
+   Painted behind everything (negative z-index in the root context);
+   no ancestor between this layer and the content paints an opaque
+   background (audited: body bg is on the canvas, root/main are bare). */
+.mesh-bg {
+  position: fixed;
+  inset: -10%;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    /* focal emerald glow, centred behind the hero headline */
+    radial-gradient(46vw 30vw at 50% 10%, rgba(16, 185, 129, 0.18), transparent 70%),
+    /* emerald — top-left */
+    radial-gradient(56vw 42vw at 10% 4%, rgba(16, 185, 129, 0.28), transparent 68%),
+    /* sky — top-right */
+    radial-gradient(50vw 40vw at 90% 6%, rgba(56, 189, 248, 0.22), transparent 68%),
+    /* mint — centre-left */
+    radial-gradient(48vw 40vw at 4% 48%, rgba(110, 231, 183, 0.3), transparent 68%),
+    /* lavender — mid-right whisper */
+    radial-gradient(44vw 36vw at 96% 52%, rgba(167, 139, 250, 0.12), transparent 68%),
+    /* amber — bottom-left whisper */
+    radial-gradient(44vw 34vw at 6% 94%, rgba(251, 191, 36, 0.1), transparent 68%),
+    /* teal — bottom-right */
+    radial-gradient(52vw 40vw at 92% 96%, rgba(45, 212, 191, 0.18), transparent 68%);
+  filter: blur(70px);
+  animation: mesh-drift 24s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes mesh-drift {
+  from {
+    transform: translate3d(-1.2%, -0.8%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(1.2%, 1%, 0) scale(1.045);
+  }
+}
+
+@layer components {
+  /* Frosted glass surface — cards, panels, tiles. A white gradient
+     (brighter top-left → deeper bottom-right) over blur+saturate so
+     the mesh colour behind visibly frosts through the surface. */
+  .glass {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.72),
+      rgba(255, 255, 255, 0.42)
+    );
+    -webkit-backdrop-filter: blur(18px) saturate(1.6);
+    backdrop-filter: blur(18px) saturate(1.6);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.25),
+      0 24px 48px -24px rgba(6, 78, 59, 0.25);
+  }
+
+  /* Emerald-tinted glass — for panels sitting over the strongest
+     mesh areas (module panels, heroes) so the frosting picks up
+     a whisper of the emerald behind it. */
+  .glass-tint {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.68),
+      rgba(236, 253, 245, 0.48)
+    );
+    -webkit-backdrop-filter: blur(18px) saturate(1.6);
+    backdrop-filter: blur(18px) saturate(1.6);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.25),
+      0 24px 48px -24px rgba(6, 78, 59, 0.25);
+  }
+
+  /* Stronger glass — modals, typing card, hero panels */
+  .glass-strong {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.82),
+      rgba(255, 255, 255, 0.55)
+    );
+    -webkit-backdrop-filter: blur(22px) saturate(1.7);
+    backdrop-filter: blur(22px) saturate(1.7);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.3),
+      0 32px 64px -28px rgba(6, 78, 59, 0.3);
+  }
+
+  /* Deep frosted slab — the keyboard deck */
+  .glass-deck {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.66),
+      rgba(236, 253, 245, 0.4)
+    );
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    backdrop-filter: blur(20px) saturate(1.6);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 0 rgba(16, 24, 40, 0.04),
+      0 30px 60px -24px rgba(6, 78, 59, 0.3);
+  }
+
+  /* Small frosted pill — HUD chips, KPI pills, legend chips */
+  .glass-pill {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.72),
+      rgba(255, 255, 255, 0.45)
+    );
+    -webkit-backdrop-filter: blur(14px) saturate(1.6);
+    backdrop-filter: blur(14px) saturate(1.6);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 9999px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.25),
+      0 10px 24px -12px rgba(6, 78, 59, 0.22);
+  }
+
+  /* Sticky header bar — slightly stronger so content scrolling
+     underneath visibly blurs through it */
+  .glass-bar {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.84),
+      rgba(255, 255, 255, 0.74)
+    );
+    -webkit-backdrop-filter: blur(20px) saturate(1.7);
+    backdrop-filter: blur(20px) saturate(1.7);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow: 0 12px 32px -18px rgba(6, 78, 59, 0.28);
+  }
+
+  /* Gentle lift on hover for interactive glass surfaces — border
+     brightens and a faint emerald edge glow frames the card */
+  .hover-lift {
+    transition:
+      transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1),
+      box-shadow 0.28s cubic-bezier(0.22, 0.61, 0.36, 1),
+      border-color 0.28s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.95);
+    box-shadow:
+      0 0 0 1px rgba(16, 185, 129, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.3),
+      0 28px 52px -20px rgba(6, 78, 59, 0.3);
+  }
+}
+
+/* View entrance — fade + 12px rise, buttery SaaS easing */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.34s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Staggered entrance for grids of cards */
+.stagger > * {
+  animation: rise-in 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+.stagger > *:nth-child(6) { animation-delay: 200ms; }
+.stagger > *:nth-child(7) { animation-delay: 240ms; }
+.stagger > *:nth-child(8) { animation-delay: 280ms; }
+.stagger > *:nth-child(9) { animation-delay: 320ms; }
+.stagger > *:nth-child(n + 10) { animation-delay: 360ms; }
+
+/* Progress fill with a soft shimmer sweep */
+.progress-fill {
+  position: relative;
+  overflow: hidden;
+}
+.progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 75%
+  );
+  transform: translateX(-110%);
+  animation: shimmer-sweep 2.6s ease-in-out infinite;
+}
+
+@keyframes shimmer-sweep {
+  55%,
+  100% {
+    transform: translateX(110%);
+  }
+}
+
+/* Badge pop-in (dashboard achievements) */
+@keyframes badge-pop {
+  0% {
+    transform: scale(0.82);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.badge-pop {
+  animation: badge-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(5, 150, 105, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0);
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2.2s ease-out infinite;
+}
+
+/* ---- Typing engine micro-animations ---- */
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.typing-caret {
+  animation: caret-blink 1.05s ease-in-out infinite;
+}
+
+@keyframes shake-x {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2.5px);
+  }
+  75% {
+    transform: translateX(2.5px);
+  }
+}
+
+.shake-once {
+  animation: shake-x 0.16s ease-in-out 1;
+}
+
+/* Premium keycap "next key" — halo glow pulse over the cap's own
+   shadow stack (zone edge colour comes in via the --edge variable).
+   The static box-shadow on .keycap-next is the no-animation fallback.
+   .key-next-shift is the twin treatment for the Shift key a capital or
+   shifted symbol needs — identical visuals, distinct marker class. */
+.keycap-next,
+.key-next-shift {
+  box-shadow:
+    inset 0 -3px 0 var(--edge, #9ca3af),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 0 0 2px #059669,
+    0 0 16px 3px rgba(5, 150, 105, 0.4);
+  animation: keycap-next 1.15s ease-in-out infinite;
+}
+
+@keyframes keycap-next {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 -3px 0 var(--edge, #9ca3af),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 0 0 2px #059669,
+      0 0 14px 2px rgba(5, 150, 105, 0.35);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow:
+      inset 0 -3px 0 var(--edge, #9ca3af),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      0 0 0 2.5px #059669,
+      0 0 26px 7px rgba(5, 150, 105, 0.5);
+    transform: translateY(-1.5px);
+  }
+}
+
+/* Wrong-key red flash on the keycap */
+.keycap-wrong {
+  animation: keycap-wrong 0.26s ease-out 1;
+}
+
+@keyframes keycap-wrong {
+  0% {
+    filter: brightness(0.92) saturate(1.6);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+
+@keyframes star-pop {
+  0% {
+    transform: scale(0) rotate(-30deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.35) rotate(8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.star-pop {
+  animation: star-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ---- Game juice ---- */
+
+@keyframes cloud-drift {
+  from {
+    transform: translateX(-12%);
+  }
+  to {
+    transform: translateX(112%);
+  }
+}
+
+.cloud-drift {
+  animation: cloud-drift linear infinite;
+}
+
+@keyframes cloud-drift-rev {
+  from {
+    transform: translateX(112%);
+  }
+  to {
+    transform: translateX(-14%);
+  }
+}
+
+.cloud-drift-rev {
+  animation: cloud-drift-rev linear infinite;
+}
+
+/* Gentle bubble sway (transform only, inner element) */
+@keyframes bubble-sway {
+  0%,
+  100% {
+    transform: rotate(-2.2deg) translateX(-1.5px);
+  }
+  50% {
+    transform: rotate(2.2deg) translateX(1.5px);
+  }
+}
+
+.bubble-sway {
+  animation: bubble-sway 3s ease-in-out infinite;
+}
+
+/* Score floater on pop */
+@keyframes pop-score {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.7);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-36px) scale(1);
+  }
+}
+
+.pop-score {
+  animation: pop-score 0.7s ease-out both;
+}
+
+/* Tiny burst particles on pop — fly out via per-particle --dx / --dy */
+.burst-particle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: particle-burst 0.65s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes particle-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 0px), var(--dy, -24px)) scale(0.35);
+  }
+}
+
+/* Soft stage shake on a missed word */
+@keyframes stage-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  45% {
+    transform: translateX(4px);
+  }
+  70% {
+    transform: translateX(-2.5px);
+  }
+}
+
+.stage-shake {
+  animation: stage-shake 0.32s ease-out 1;
+}
+
+/* Lost heart — cracks to grey */
+@keyframes heart-lost {
+  0% {
+    transform: scale(1.45) rotate(-8deg);
+    filter: grayscale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    filter: grayscale(1);
+    opacity: 0.45;
+  }
+}
+
+.heart-lost {
+  display: inline-block;
+  animation: heart-lost 0.45s ease-out both;
+}
+
+/* Countdown numbers — big scale/fade pop */
+@keyframes count-pop {
+  0% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+.count-pop {
+  animation: count-pop 0.62s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Combo pill pulse when the combo grows */
+@keyframes combo-pulse {
+  0% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.combo-pulse {
+  animation: combo-pulse 0.22s ease-out 1;
+}
+
+/* Floating ambient light motes in the game sky */
+.mote {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.75);
+  filter: blur(1px);
+  pointer-events: none;
+  animation: float-slow ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-float-slow,
+  .animate-pulse-ring,
+  .typing-caret,
+  .cloud-drift,
+  .cloud-drift-rev,
+  .mesh-bg,
+  .bubble-sway,
+  .mote {
+    animation: none;
+  }
+  .keycap-next,
+  .key-next-shift {
+    animation: none;
+  }
+  .progress-fill::after {
+    animation: none;
+    display: none;
+  }
+  .stage-shake,
+  .keycap-wrong,
+  .combo-pulse {
+    animation: none;
+  }
+  .burst-particle {
+    display: none;
+  }
+  .rise-in,
+  .star-pop,
+  .pop-score,
+  .badge-pop,
+  .heart-lost,
+  .count-pop,
+  .stagger > * {
+    animation-duration: 0.01s;
+  }
+  .hover-lift:hover {
+    transform: none;
+  }
+}
